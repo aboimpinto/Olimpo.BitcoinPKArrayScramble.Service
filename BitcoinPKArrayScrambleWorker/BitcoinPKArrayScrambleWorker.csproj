@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
@@ -8,5 +7,6 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="*"/>
     <PackageReference Include="System.Diagnostics.Debug" Version="*"/>
     <PackageReference Include="Olimpo.RedisProvider" Version="*"/>
+    <PackageReference Include="StackExchange.Redis" Version="*"/>
   </ItemGroup>
 </Project>

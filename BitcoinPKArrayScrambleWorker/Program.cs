@@ -25,7 +25,7 @@ namespace BitcoinPKArrayScrambleWorker
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
-                    // services.AddSingleton<IPrivateKeyBytesGenerator, PrivateKeyBytesGenerator>();
+                    services.AddSingleton<IScrambleService, ScrambleService>();
                     services.AddHostedService<BitcoinPkArrayScrambleWorker>();
                 });
     }
