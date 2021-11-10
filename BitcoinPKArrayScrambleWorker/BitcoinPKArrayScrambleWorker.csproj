@@ -10,5 +10,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MongoDbQueueService\MongoDbQueueService.csproj" />
+    <ProjectReference Include="..\WorkerUtilitiesService\WorkerUtilitiesService.csproj" />
   </ItemGroup>
 </Project>
