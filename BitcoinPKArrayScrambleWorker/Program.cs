@@ -11,19 +11,6 @@ namespace BitcoinPKArrayScrambleWorker
     {
         static void Main(string[] args)
         {
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
-                .Build();
-
-            var publisherSettings = new PublisherSettings();
-            configuration.Bind("publisherSettings", publisherSettings);
-
-            var subscriberSettings = new SubscriberSettings();
-            configuration.Bind("SubscriberSettings", subscriberSettings);
-
-            var workerName = configuration.GetSection("workerName");
-
             CreateHostBuilder(args)
                 .Build()
                 .Run();
@@ -40,9 +27,31 @@ namespace BitcoinPKArrayScrambleWorker
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
+                    CollectConfigurations(services);
+
                     services.AddSingleton<IScrambleService, ScrambleService>();
                     
                     services.AddHostedService<BitcoinPkArrayScrambleWorker>();
                 });
+
+        private static void CollectConfigurations(IServiceCollection services)
+        {
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+                .Build();
+
+            var publisherSettings = new PublisherSettings();
+            configuration.Bind("publisherSettings", publisherSettings);
+            services.AddSingleton(publisherSettings);
+
+            var subscriberSettings = new SubscriberSettings();
+            configuration.Bind("SubscriberSettings", subscriberSettings);
+            services.AddSingleton(subscriberSettings);
+
+            var workerSettings = new WorkerSettings();
+            configuration.Bind("WorkerSettings", workerSettings);
+            services.AddSingleton(workerSettings);
+        }
     }
 }

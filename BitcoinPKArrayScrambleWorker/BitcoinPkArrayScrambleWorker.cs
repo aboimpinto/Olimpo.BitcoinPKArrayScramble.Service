@@ -2,6 +2,7 @@ using System;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using BitcoinPKArrayScrambleWorker.Configuration;
 using BitcoinPKArrayScrambleWorker.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -11,10 +12,6 @@ namespace BitcoinPKArrayScrambleWorker
 {
     public class BitcoinPkArrayScrambleWorker : BackgroundService
     {
-        private const string WorkerName = "Worker1";
-        private const string GroupName = "NewGroup";
-        private const string IncomeStreamName = "BitcoinPkArrayGenerator";
-        private const string OutcomeStreamName = "BitcoinPkArrayScrambled";
         private readonly IScrambleService _scrambleService;
         private readonly ILogger<BitcoinPkArrayScrambleWorker> _logger;
         
@@ -25,26 +22,22 @@ namespace BitcoinPKArrayScrambleWorker
 
         public BitcoinPkArrayScrambleWorker(
             IScrambleService scrambleService, 
+            SubscriberSettings subscriberSettings,
+            PublisherSettings publisherSettings,
+            WorkerSettings workerSettings,
             ILogger<BitcoinPkArrayScrambleWorker> logger)
         {
             this._scrambleService = scrambleService;
             this._logger = logger;
 
-            this._subscriber = new Subscriber("mongodb://localhost:27017", "PkGenerators", IncomeStreamName, "WORKER_1");
-            this._publisher = new Publisher("mongodb://localhost:27017", "PkGenerators", OutcomeStreamName);
+            this._subscriber = new Subscriber(subscriberSettings.ConnectionString, subscriberSettings.Database, subscriberSettings.Queue, "WORKER_1");
+            this._publisher = new Publisher(publisherSettings.ConnectionString, publisherSettings.Database, publisherSettings.Queue);
 
             this._scrambleService.OnNewByteArray
                 .Subscribe(x => 
                 {
                     // Save PK in stream
                     this._publisher.Send(x);
-
-                    // this._pkCount ++;
-
-                    // if (this._pkCount % 10000000 == 0)
-                    // {
-                    //     this._logger.LogInformation($"{this._pkCount.ToString("00000000000000")} [{x.ToDescription()}]");
-                    // }
 
                     this._pkCount ++;
                     this._logger.LogInformation($"{this._pkCount.ToString("0000")} [{x.ToDescription()}]");
