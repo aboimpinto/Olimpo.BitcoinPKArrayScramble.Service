@@ -1,4 +1,4 @@
-namespace BitcoinPKArrayScrambleWorker.Configuration
+namespace WorkerUtilitiesService.Configuration
 {
     public class WorkerSettings
     {

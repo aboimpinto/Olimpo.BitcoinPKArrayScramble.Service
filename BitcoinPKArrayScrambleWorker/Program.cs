@@ -1,9 +1,9 @@
-﻿using BitcoinPKArrayScrambleWorker.Configuration;
-using System.IO;
+﻿using System.IO;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using WorkerUtilitiesService;
 
 namespace BitcoinPKArrayScrambleWorker
 {
@@ -30,6 +30,7 @@ namespace BitcoinPKArrayScrambleWorker
                     CollectConfigurations(services);
 
                     services.AddSingleton<IScrambleService, ScrambleService>();
+                    services.AddSingleton<IWorkerLifeCycleService, WorkerLifeCycleService>();
                     
                     services.AddHostedService<BitcoinPkArrayScrambleWorker>();
                 });
@@ -41,17 +42,17 @@ namespace BitcoinPKArrayScrambleWorker
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
                 .Build();
 
-            var publisherSettings = new PublisherSettings();
-            configuration.Bind("publisherSettings", publisherSettings);
-            services.AddSingleton(publisherSettings);
+            // var publisherSettings = new PublisherSettings();
+            // configuration.Bind("publisherSettings", publisherSettings);
 
-            var subscriberSettings = new SubscriberSettings();
-            configuration.Bind("SubscriberSettings", subscriberSettings);
-            services.AddSingleton(subscriberSettings);
+            // var subscriberSettings = new SubscriberSettings();
+            // configuration.Bind("SubscriberSettings", subscriberSettings);
 
-            var workerSettings = new WorkerSettings();
-            configuration.Bind("WorkerSettings", workerSettings);
-            services.AddSingleton(workerSettings);
+            // var workerSettings = new WorkerSettings();
+            // configuration.Bind("WorkerSettings", workerSettings);
+
+            // var appsettings = new AppSettings(workerSettings);
+            // services.AddSingleton(appsettings);
         }
     }
 }

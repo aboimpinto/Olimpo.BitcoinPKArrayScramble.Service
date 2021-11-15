@@ -1,20 +1,26 @@
 using System;
+using System.IO;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using BitcoinPKArrayScrambleWorker.Configuration;
 using BitcoinPKArrayScrambleWorker.Extensions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDbQueueService;
+using MongoDbQueueService.Configuration;
+using WorkerUtilitiesService;
 
 namespace BitcoinPKArrayScrambleWorker
 {
     public class BitcoinPkArrayScrambleWorker : BackgroundService
     {
         private readonly IScrambleService _scrambleService;
+        private readonly IWorkerLifeCycleService _workerLifeCycleService;
         private readonly ILogger<BitcoinPkArrayScrambleWorker> _logger;
-        
+        private PublisherSettings _publisherSettings;
+        private SubscriberSettings _subscriberSettings;
+
         public IPublisher _publisher;
         public ISubscriber _subscriber;
 
@@ -22,16 +28,36 @@ namespace BitcoinPKArrayScrambleWorker
 
         public BitcoinPkArrayScrambleWorker(
             IScrambleService scrambleService, 
-            SubscriberSettings subscriberSettings,
-            PublisherSettings publisherSettings,
-            WorkerSettings workerSettings,
+            IWorkerLifeCycleService workerLifeCycleService,
             ILogger<BitcoinPkArrayScrambleWorker> logger)
         {
             this._scrambleService = scrambleService;
+            this._workerLifeCycleService = workerLifeCycleService;
             this._logger = logger;
 
-            this._subscriber = new Subscriber(subscriberSettings.ConnectionString, subscriberSettings.Database, subscriberSettings.Queue, "WORKER_1");
-            this._publisher = new Publisher(publisherSettings.ConnectionString, publisherSettings.Database, publisherSettings.Queue);
+            this.ReadConfigurations();
+
+            this._logger.LogInformation($"Subscriber ConnectionString: {this._subscriberSettings.ConnectionString}");
+            this._subscriber = new Subscriber(
+                this._subscriberSettings.ConnectionString, 
+                this._subscriberSettings.Database, 
+                this._subscriberSettings.Queue, 
+                this._subscriberSettings.WorkerName);
+
+            this._logger.LogInformation($"Publisher ConnectionString: {this._publisherSettings.ConnectionString}");
+            this._publisher = new Publisher(
+                this._publisherSettings.ConnectionString, 
+                this._publisherSettings.Database, 
+                this._publisherSettings.Queue);
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            this._logger.LogInformation("Worker started at: {time}", DateTimeOffset.Now);
+
+            await this._workerLifeCycleService
+                .StartWorker()
+                .ConfigureAwait(false);
 
             this._scrambleService.OnNewByteArray
                 .Subscribe(x => 
@@ -42,11 +68,6 @@ namespace BitcoinPKArrayScrambleWorker
                     this._pkCount ++;
                     this._logger.LogInformation($"{this._pkCount.ToString("0000")} [{x.ToDescription()}]");
                 });
-        }
-
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            this._logger.LogInformation("Worker started at: {time}", DateTimeOffset.Now);
 
             var queueSubscriber = this._subscriber
                 .SubscribeQueueCollection<byte[]>(stoppingToken)
@@ -63,6 +84,20 @@ namespace BitcoinPKArrayScrambleWorker
 
             this._logger.LogInformation("Worker stopped at: {time}", DateTimeOffset.Now);
             queueSubscriber.Dispose();
+        }
+
+        private void ReadConfigurations()
+        {
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+                .Build();
+
+            this._publisherSettings = new PublisherSettings();
+            configuration.Bind("publisherSettings", this._publisherSettings);
+
+            this._subscriberSettings = new SubscriberSettings();
+            configuration.Bind("SubscriberSettings", this._subscriberSettings);
         }
 
         private void ScramblePK(byte[] source)
