@@ -53,9 +53,27 @@ namespace WorkerUtilitiesService
             }
             else
             {
-                var update = Builders<WorkerDetails>.Update.Set(x => x.LastOperationTimeStamp, DateTime.UtcNow);
-                await this._workerDetailsCollection.UpdateOneAsync(filter, update);
+                var update = Builders<WorkerDetails>.Update
+                    .Set(x => x.LastOperationTimeStamp, DateTime.UtcNow);
+                await this._workerDetailsCollection
+                    .UpdateOneAsync(filter, update)
+                    .ConfigureAwait(false);
             }
+        }
+
+        public async Task SetWorkerProgress(WorkerProgress workerProgress)
+        {
+            var filter = Builders<WorkerDetails>.Filter.And(
+                Builders<WorkerDetails>.Filter.Eq(x => x.WorkerName, this._workerSettings.WorkerName),
+                Builders<WorkerDetails>.Filter.Eq(x => x.WorkerInternalId, this._internalGuid)
+            );
+
+            var update = Builders<WorkerDetails>.Update
+                .Set(x => x.LastOperationTimeStamp, DateTime.UtcNow)
+                .Set(x => x.LastOperationMessage, workerProgress.ProgressMessage);
+            await this._workerDetailsCollection
+                .UpdateOneAsync(filter, update)
+                .ConfigureAwait(false);
         }
 
         private void ReadConfigurations()

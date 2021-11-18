@@ -24,6 +24,7 @@ namespace BitcoinPKArrayScrambleWorker
         public IPublisher _publisher;
         public ISubscriber _subscriber;
 
+        private int _pkIntanceCount = 1;
         private int _pkCount = 1;
 
         public BitcoinPkArrayScrambleWorker(
@@ -53,20 +54,25 @@ namespace BitcoinPKArrayScrambleWorker
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            this._logger.LogInformation("Worker started at: {time}", DateTimeOffset.Now);
+            this._logger.LogInformation($"Worker started at: {DateTimeOffset.Now}");
 
             await this._workerLifeCycleService
                 .StartWorker()
                 .ConfigureAwait(false);
 
             this._scrambleService.OnNewByteArray
-                .Subscribe(x => 
+                .Subscribe(async x => 
                 {
                     // Save PK in stream
-                    this._publisher.Send(x);
+                    await this._publisher.Send(x);
 
+                    this._pkIntanceCount ++;
                     this._pkCount ++;
-                    this._logger.LogInformation($"{this._pkCount.ToString("0000")} [{x.ToDescription()}]");
+                    var message = $"{this._pkIntanceCount.ToString("0000")} | {this._pkCount.ToString("0000")} [{x.ToDescription()}]";
+                    await this._workerLifeCycleService
+                        .SetWorkerProgress(new WorkerProgress(message))
+                        .ConfigureAwait(false);
+                    this._logger.LogInformation(message);
                 });
 
             var queueSubscriber = this._subscriber
@@ -82,7 +88,12 @@ namespace BitcoinPKArrayScrambleWorker
                 await Task.Delay(1000);
             }
 
-            this._logger.LogInformation("Worker stopped at: {time}", DateTimeOffset.Now);
+            var stopMessage = string.Format($"Worker stopped at: {DateTimeOffset.Now}");
+
+            await this._workerLifeCycleService
+                .SetWorkerProgress(new WorkerProgress(stopMessage))
+                .ConfigureAwait(false);
+            this._logger.LogInformation(stopMessage);
             queueSubscriber.Dispose();
         }
 
